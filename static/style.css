@@ -1,0 +1,36 @@
+body {
+  margin: 20px;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+input[type="file"] {
+  margin-bottom: 10px;
+  width: 100%;
+}
+
+input[type="submit"] {
+  padding: 8px 16px;
+  margin: 10px 0;
+}
+
+table {
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+th, td {
+  padding: 8px;
+}
+
+p.note {
+  font-size: 0.9em;
+  color: #555;
+}
+
+#message {
+  padding: 10px;
+  border-radius: 5px;
+  background-color: #e6ffe6;
+}

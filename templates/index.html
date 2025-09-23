@@ -1,0 +1,149 @@
+<!doctype html>
+<html>
+<head>
+  <title>Watermark Uploader</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+  <h1>Upload Images for Watermark</h1>
+  <input type="file" id="fileInput" name="file" accept="image/*" multiple>
+  <div id="message" style="display: none; color: green; margin: 10px 0;"></div>
+  <h2>Pre-Watermarked Files (Staged)</h2>
+  {% if original_files %}
+  <form id="processForm">
+    <input type="submit" value="Process All Staged Files">
+  </form>
+  <table id="originalFiles">
+    <tr><th>Filename</th><th>Actions</th></tr>
+    {% for file in original_files %}
+    <tr>
+      <td>{{ file }}</td>
+      <td>
+        <a href="/download_original/{{ file }}">Download</a> |
+        <a href="/delete_original/{{ file }}" class="delete-link">Delete</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p>No pre-watermarked files staged.</p>
+  {% endif %}
+  <h2>Watermarked Files</h2>
+  <div id="watermarkedFiles">
+    {% if watermarked_files %}
+    <table>
+      <tr><th>Filename</th><th>Actions</th></tr>
+      {% for file in watermarked_files %}
+      <tr>
+        <td>{{ file }}</td>
+        <td>
+          <a href="/download/{{ file }}">Download</a> |
+          <a href="/delete/{{ file }}" class="delete-link">Delete</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+    <p><strong>Note:</strong> On iPhone, downloaded files go to Downloads. Open Downloads, tap the file, use the Share button, and select "Save Image" to add to Photos.</p>
+    {% else %}
+    <p>No watermarked files available.</p>
+    {% endif %}
+  </div>
+  <script>
+    // Auto-stage files on selection
+    document.getElementById('fileInput').addEventListener('change', function() {
+      const files = this.files;
+      if (files.length === 0) return;
+      
+      const formData = new FormData();
+      for (const file of files) {
+        formData.append('file', file);
+      }
+      
+      fetch('/stage', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          window.location.reload(); // Refresh to show staged files
+        } else {
+          alert('Error staging files: ' + data.error);
+        }
+      })
+      .catch(error => {
+        alert('Error: ' + error.message);
+      });
+    });
+
+    // Process files
+    document.getElementById('processForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      fetch('/process', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+          const messageDiv = document.getElementById('message');
+          const watermarkedFilesDiv = document.getElementById('watermarkedFiles');
+          if (data.success) {
+            // Trigger confetti animation
+            confetti({
+              particleCount: 100,
+              spread: 70,
+              origin: { y: 0.6 }
+            });
+            // Show success message
+            messageDiv.style.display = 'block';
+            messageDiv.textContent = 'Files watermarked successfully!';
+            setTimeout(() => { messageDiv.style.display = 'none'; }, 3000);
+            // Update watermarked files table
+            const table = document.createElement('table');
+            table.innerHTML = '<tr><th>Filename</th><th>Actions</th></tr>';
+            data.links.forEach(link => {
+              const row = document.createElement('tr');
+              row.innerHTML = `
+                <td>${link.filename}</td>
+                <td>
+                  <a href="${link.url}">Download</a> |
+                  <a href="/delete/${link.filename}" class="delete-link">Delete</a>
+                </td>`;
+              table.appendChild(row);
+            });
+            watermarkedFilesDiv.innerHTML = '';
+            watermarkedFilesDiv.appendChild(table);
+            watermarkedFilesDiv.innerHTML += '<p><strong>Note:</strong> On iPhone, downloaded files go to Downloads. Open Downloads, tap the file, use the Share button, and select "Save Image" to add to Photos.</p>';
+            // Refresh staged files table
+            document.getElementById('originalFiles').innerHTML = '<tr><th>Filename</th><th>Actions</th></tr>';
+            document.getElementById('originalFiles').insertAdjacentHTML('afterend', '<p>No pre-watermarked files staged.</p>');
+          } else {
+            alert('Error processing files: ' + data.error);
+          }
+        })
+        .catch(error => {
+          alert('Error: ' + error.message);
+        });
+    });
+
+    // Handle delete links with event delegation
+    document.body.addEventListener('click', function(e) {
+      if (e.target.classList.contains('delete-link')) {
+        e.preventDefault();
+        fetch(e.target.href, { method: 'GET' })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              window.location.reload(); // Refresh to update file lists
+            } else {
+              alert('Error deleting file: ' + data.error);
+            }
+          })
+          .catch(error => {
+            alert('Error: ' + error.message);
+          });
+      }
+    });
+  </script>
+</body>
+</html>
