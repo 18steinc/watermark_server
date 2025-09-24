@@ -37,6 +37,11 @@ def add_watermark(image_path, output_path):
     base_image = Image.open(image_path)
     watermark = Image.open(LOGO_PATH).convert("RGBA")  # Convert logo to RGBA for transparency
     
+    # Make logo semi-transparent (50% opacity)
+    alpha = watermark.split()[3]  # Get alpha channel
+    alpha = alpha.point(lambda p: int(p * 0.7))  # Reduce opacity to 50% (adjustable: 0.0 to 1.0)
+    watermark.putalpha(alpha)  # Apply modified alpha channel
+    
     # Resize watermark to 20% of base image width (adjustable)
     watermark_width = int(base_image.width * 0.2)
     watermark_height = int(watermark_width * (watermark.height / watermark.width))
