@@ -1,5 +1,5 @@
 from flask import Flask, request, send_from_directory, render_template, jsonify
-from PIL import Image
+from PIL import Image, ImageOps
 import os
 import pillow_heif  # Required for HEIC support
 import logging
@@ -35,11 +35,15 @@ def add_watermark(image_path, output_path):
     logging.debug(f"Adding watermark to {image_path}, saving to {output_path}")
     # Open the uploaded image and logo
     base_image = Image.open(image_path)
+    
+    # Correct orientation based on EXIF data
+    base_image = ImageOps.exif_transpose(base_image)
+    
     watermark = Image.open(LOGO_PATH).convert("RGBA")  # Convert logo to RGBA for transparency
     
     # Make logo semi-transparent (50% opacity)
     alpha = watermark.split()[3]  # Get alpha channel
-    alpha = alpha.point(lambda p: int(p * 0.7))  # Reduce opacity to 50% (adjustable: 0.0 to 1.0)
+    alpha = alpha.point(lambda p: int(p * 0.5))  # Reduce opacity to 50%
     watermark.putalpha(alpha)  # Apply modified alpha channel
     
     # Resize watermark to 20% of base image width (adjustable)
