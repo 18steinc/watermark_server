@@ -30,7 +30,6 @@ Preserves **HEIC, PNG, JPG** exactly — only overlays your logo.
 
 ## Quick Start
 
-```bash
 # 1. Clone the repo
 git clone https://github.com/18steinc/watermark_server.git
 cd watermark_server
