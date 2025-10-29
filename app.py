@@ -1,7 +1,7 @@
 from flask import Flask, request, send_from_directory, render_template, jsonify
 from PIL import Image, ImageOps
 import os
-import pillow_heif  # Required for HEIC support
+import pillow_heif  # for HEIC support
 import logging
 import time
 import threading
@@ -16,8 +16,8 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
 # Define paths for uploads, watermarked outputs, and logo
 UPLOAD_FOLDER = 'Uploads'  # Storage for staged (pre-watermarked) images
 WATERMARKED_FOLDER = 'watermarked'  # Storage for watermarked images
-LOGO_PATH = 'logo.png'  # Update if logo is named differently (e.g., 'dance_logo.png')
-ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'heic', 'heif'}  # Added HEIC/HEIF support
+LOGO_PATH = 'logo.png'  # Update if logo is named differently (e.g., 'holiday_logo.png')
+ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'heic', 'heif'}  
 
 # Create folders if they don't exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
