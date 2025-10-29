@@ -88,7 +88,7 @@ pip install Flask Pillow pillow-heif
 
 
 
-# 3. Load it 
+### 3. Load it 
 - `launchctl load ~/Library/LaunchAgents/com.watermarkserver.plist`
 
 ---
