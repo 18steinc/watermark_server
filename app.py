@@ -30,43 +30,63 @@ pillow_heif.register_heif_opener()
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# Function to add watermark to an image
+# Function to add watermark without altering image quality
 def add_watermark(image_path, output_path):
     logging.debug(f"Adding watermark to {image_path}, saving to {output_path}")
-    # Open the uploaded image and logo
-    base_image = Image.open(image_path)
     
-    # Correct orientation based on EXIF data
+    # Open the original image and preserve metadata
+    base_image = Image.open(image_path)
+    original_format = base_image.format
+    original_mode = base_image.mode
+    
+    # Fix orientation using EXIF (keeps image data intact)
     base_image = ImageOps.exif_transpose(base_image)
     
-    watermark = Image.open(LOGO_PATH).convert("RGBA")  # Convert logo to RGBA for transparency
-    
-    # Make logo semi-transparent (50% opacity)
-    alpha = watermark.split()[3]  # Get alpha channel
-    alpha = alpha.point(lambda p: int(p * 0.5))  # Reduce opacity to 50%
-    watermark.putalpha(alpha)  # Apply modified alpha channel
-    
-    # Resize watermark to 20% of base image width (adjustable)
+    # Load and prepare watermark
+    watermark = Image.open(LOGO_PATH).convert("RGBA")
     watermark_width = int(base_image.width * 0.2)
     watermark_height = int(watermark_width * (watermark.height / watermark.width))
     watermark = watermark.resize((watermark_width, watermark_height), Image.Resampling.LANCZOS)
     
-    # Position watermark in bottom-right corner with 20px padding (adjustable)
+    # 50% opacity
+    alpha = watermark.split()[3].point(lambda p: int(p * 0.5))
+    watermark.putalpha(alpha)
+    
+    # Position: bottom-right, 20px padding
     position = (base_image.width - watermark_width - 20, base_image.height - watermark_height - 20)
     
-    # Convert base image to RGBA if needed for transparency support
-    if base_image.mode != 'RGBA':
+    # Only convert to RGBA if needed for paste
+    if base_image.mode not in ('RGBA', 'LA'):
         base_image = base_image.convert('RGBA')
     
-    # Overlay watermark
-    base_image.paste(watermark, position, watermark)  # Use watermark as mask for transparency
+    # Paste watermark
+    base_image.paste(watermark, position, watermark)
     
-    # Convert to RGB for output (output as JPEG for consistency)
-    base_image = base_image.convert('RGB')
+    # Convert back to original mode if possible
+    if original_mode in ('RGB', 'L', 'P'):
+        base_image = base_image.convert(original_mode)
     
-    # Save as JPEG (regardless of input format) to ensure compatibility
-    output_path = os.path.splitext(output_path)[0] + '.jpg'
-    base_image.save(output_path, quality=95)  # Save with high quality
+    # Save with original format and max quality
+    output_path = os.path.splitext(output_path)[0]
+    
+    if original_format in ('JPEG', 'JPG'):
+        output_path += '.jpg'
+        base_image.save(output_path, format='JPEG', quality=100, subsampling=0)
+    elif original_format == 'PNG':
+        output_path += '.png'
+        base_image.save(output_path, format='PNG', compress_level=0)
+    elif original_format in ('HEIC', 'HEIF'):
+        try:
+            heif_file = pillow_heif.from_pillow(base_image)
+            heif_file.save(output_path + '.heic', quality=100)
+        except Exception as e:
+            logging.warning(f"HEIC save failed, using JPEG: {e}")
+            base_image.save(output_path + '.jpg', format='JPEG', quality=100, subsampling=0)
+    else:
+        output_path += '.jpg'
+        base_image.save(output_path, format='JPEG', quality=100, subsampling=0)
+    
+    logging.debug(f"Watermarked image saved: {output_path}")
 
 # Function to delete files older than 24 hours
 def cleanup_old_files():
@@ -135,13 +155,8 @@ def stage_files():
 @app.route('/', methods=['GET'])
 def main_page():
     logging.debug(f"Rendering main page for {request.remote_addr}")
-    # Get list of pre-watermarked (staged) files
     original_files = [f for f in os.listdir(UPLOAD_FOLDER) if allowed_file(f)]
-    
-    # Get list of watermarked files
     watermarked_files = [f for f in os.listdir(WATERMARKED_FOLDER) if allowed_file(f)]
-    
-    # Render HTML template
     return render_template('index.html', original_files=original_files, watermarked_files=watermarked_files)
 
 # Route to process all staged files
@@ -156,14 +171,16 @@ def process_files():
     download_links = []
     for filename in original_files:
         input_path = os.path.join(UPLOAD_FOLDER, filename)
-        output_filename = f"watermarked_{filename.rsplit('.', 1)[0]}.jpg"  # Output as JPEG
+        original_ext = os.path.splitext(filename)[1].lower()
+        output_ext = '.heic' if original_ext in ('.heic', '.heif') else '.png' if original_ext == '.png' else '.jpg'
+        output_filename = f"watermarked_{filename.rsplit('.', 1)[0]}{output_ext}"
         output_path = os.path.join(WATERMARKED_FOLDER, output_filename)
         
         try:
             add_watermark(input_path, output_path)
             os.remove(input_path)  # Delete original after successful watermarking
             download_links.append({'filename': output_filename, 'url': f'/download/{output_filename}'})
-            logging.debug(f"Processed {filename} to {output_filename}")
+            logging.debug(f"Processed {filename} → {output_filename}")
         except Exception as e:
             logging.error(f"Error processing {filename}: {str(e)}")
             return jsonify({'success': False, 'error': f'Error processing {filename}: {str(e)}'}), 500
@@ -212,6 +229,6 @@ def delete_original_file(filename):
     logging.error(f"File not found: {filename}")
     return jsonify({'success': False, 'error': 'File not found'}), 404
 
-# Run the server on all interfaces, port 5000, with debug mode
+# Run the server on all interfaces, port 5000
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
