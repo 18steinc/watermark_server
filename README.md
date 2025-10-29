@@ -17,7 +17,7 @@ Preserves **HEIC, PNG, JPG** exactly — only overlays your logo.
 - Auto-delete files after 24 hours
 - Mobile-friendly UI with **Water.css**
 - Success confetti animation
-- Clean design — no "Download All" or "Delete All" buttons
+- Clean design 
 
 ---
 
@@ -32,7 +32,7 @@ Preserves **HEIC, PNG, JPG** exactly — only overlays your logo.
 
 ```bash
 # 1. Clone the repo
-git clone https://github.com/yourusername/watermark_server.git
+git clone https://github.com/18steinc/watermark_server.git
 cd watermark_server
 
 # 2. Create virtual environment
