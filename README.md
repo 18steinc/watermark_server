@@ -30,55 +30,40 @@ Preserves **HEIC, PNG, JPG** exactly — only overlays your logo.
 
 ## Quick Start
 
-# 1. Clone the repo
+### 1. Clone the repo
 git clone https://github.com/18steinc/watermark_server.git
 cd watermark_server
 
-# 2. Create virtual environment
+### 2. Create virtual environment
 python3 -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
-# 3. Install dependencies
+### 3. Install dependencies
 pip install Flask Pillow pillow-heif
 
-# 4. Add your watermark
-# Place your logo as 'logo.png' in the project root
-# This file is in .gitignore — it will not be committed
-cp /path/to/your/logo.png logo.png
+### 4. Add your watermark
+- Place your logo as 'logo.png' in the project root
+- This file is in .gitignore — it will not be committed
+- cp /path/to/your/logo.png logo.png
 
-# 5. Run the server
-python app.py
+### 5. Run the server
+- `python app.py`
 
-Server runs on: http://localhost:5000
+- Server runs on: `http://localhost:5000`
 
 ---
-
-## Folder Structure
-
-watermark_server/
-├── app.py
-├── logo.png          ← YOUR LOGO (add this!)
-├── Uploads/          ← Staged uploads
-├── watermarked/      ← Watermarked outputs
-├── templates/
-│   └── index.html
-├── static/
-│   └── style.css
-├── logs/
-│   ├── stdout.log
-│   └── stderr.log
-└── .gitignore
 
 
 ## Running on your local server 
 
-# 1. Created required folders 
-`mkdir -p Uploads watermarked logs templates static`
+### 1. Created required folders 
+- `mkdir -p Uploads watermarked logs templates static`
 
-# 2. Create MacOS LaunchAgent
-Save as ~/Library/LaunchAgents/com.watermarkserver.plist
+### 2. Create MacOS LaunchAgent
+- Save as `~/Library/LaunchAgents/com.watermarkserver.plist`
 
-`<?xml version="1.0" encoding="UTF-8"?>
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
@@ -98,21 +83,22 @@ Save as ~/Library/LaunchAgents/com.watermarkserver.plist
     <key>StandardErrorPath</key>
     <string>/absolute/path/to/watermark_server/logs/stderr.log</string>
 </dict>
-</plist>`
+</plist>
+```
 
 
 
 # 3. Load it 
-`launchctl load ~/Library/LaunchAgents/com.watermarkserver.plist`
+- `launchctl load ~/Library/LaunchAgents/com.watermarkserver.plist`
 
 ---
 
 ## Customization 
 
-- Watermark sizeEdit 0.2 in app.py (watermark_width = int(base_image.width * 0.2))
-- OpacityEdit 0.5 in alpha.point(lambda p: int(p * 0.5))
-- PositionEdit 20 in position = (..., 20)
-- Auto-delete timeEdit hours=24 in cleanup_old_files()
+- Watermark Size: Edit 0.2 in app.py (watermark_width = int(base_image.width * 0.2))
+- Opacity: Edit 0.5 in alpha.point(lambda p: int(p * 0.5))
+- Position: Edit 20 in position = (..., 20)
+- Auto-delete time: Edit hours=24 in cleanup_old_files()
 
 ---
 
