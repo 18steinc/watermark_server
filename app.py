@@ -38,6 +38,12 @@ def add_watermark(image_path, output_path):
     base_image = Image.open(image_path)
     original_format = base_image.format
     original_mode = base_image.mode
+    original_icc_profile = base_image.info.get("icc_profile")
+    # Keep EXIF for downstream save (orientation will be handled by exif_transpose)
+    try:
+        original_exif_bytes = base_image.getexif().tobytes()
+    except Exception:
+        original_exif_bytes = base_image.info.get("exif")
     
     # Fix orientation using EXIF (keeps image data intact)
     base_image = ImageOps.exif_transpose(base_image)
@@ -65,26 +71,58 @@ def add_watermark(image_path, output_path):
     # Convert back to original mode if possible
     if original_mode in ('RGB', 'L', 'P'):
         base_image = base_image.convert(original_mode)
+    # Re-attach metadata that can be lost during convert/transpose
+    if original_icc_profile:
+        base_image.info["icc_profile"] = original_icc_profile
+    if original_exif_bytes:
+        base_image.info["exif"] = original_exif_bytes
     
     # Save with original format and max quality
     output_path = os.path.splitext(output_path)[0]
     
     if original_format in ('JPEG', 'JPG'):
         output_path += '.jpg'
-        base_image.save(output_path, format='JPEG', quality=100, subsampling=0)
+        base_image.save(
+            output_path,
+            format='JPEG',
+            quality=100,
+            subsampling=0,
+            icc_profile=original_icc_profile,
+            exif=original_exif_bytes,
+        )
     elif original_format == 'PNG':
         output_path += '.png'
-        base_image.save(output_path, format='PNG', compress_level=0)
+        base_image.save(
+            output_path,
+            format='PNG',
+            compress_level=0,
+            icc_profile=original_icc_profile,
+            exif=original_exif_bytes,
+        )
     elif original_format in ('HEIC', 'HEIF'):
         try:
             heif_file = pillow_heif.from_pillow(base_image)
             heif_file.save(output_path + '.heic', quality=100)
         except Exception as e:
             logging.warning(f"HEIC save failed, using JPEG: {e}")
-            base_image.save(output_path + '.jpg', format='JPEG', quality=100, subsampling=0)
+            base_image.save(
+                output_path + '.jpg',
+                format='JPEG',
+                quality=100,
+                subsampling=0,
+                icc_profile=original_icc_profile,
+                exif=original_exif_bytes,
+            )
     else:
         output_path += '.jpg'
-        base_image.save(output_path, format='JPEG', quality=100, subsampling=0)
+        base_image.save(
+            output_path,
+            format='JPEG',
+            quality=100,
+            subsampling=0,
+            icc_profile=original_icc_profile,
+            exif=original_exif_bytes,
+        )
     
     logging.debug(f"Watermarked image saved: {output_path}")
 
